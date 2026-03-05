@@ -126,6 +126,61 @@ A **driver** gets a licence if $driver passes`;
 		});
 	});
 
+	describe("negated label references", () => {
+		it("should highlight §label fails", () => {
+			const input = `check. A **user** passes the age check
+A **user** is denied if §check fails`;
+			const result = hl(input);
+			expect(result).toContain(`<span class="c-label-ref">§check fails</span>`);
+		});
+
+		it("should highlight §label does not pass", () => {
+			const input = `check. A **user** passes the age check
+A **user** is denied if §check does not pass`;
+			const result = hl(input);
+			expect(result).toContain(`<span class="c-label-ref">§check does not pass</span>`);
+		});
+	});
+
+	describe("aggregation functions", () => {
+		it("should highlight 'sum of'", () => {
+			const result = hl("the sum of __prices__ of the **Order** is at least 50");
+			expect(result).toContain(`<span class="c-function">sum of</span>`);
+		});
+
+		it("should highlight 'average of'", () => {
+			const result = hl("the average of __scores__ of the **Student** is at least 60");
+			expect(result).toContain(`<span class="c-function">average of</span>`);
+		});
+
+		it("should highlight 'min of'", () => {
+			const result = hl("the min of __bids__ of the **Auction** is greater than 0");
+			expect(result).toContain(`<span class="c-function">min of</span>`);
+		});
+
+		it("should highlight 'max of'", () => {
+			const result = hl("the max of __temperatures__ of the **Report** is less than 100");
+			expect(result).toContain(`<span class="c-function">max of</span>`);
+		});
+	});
+
+	describe("multi-element containment", () => {
+		it("should highlight 'contains all of'", () => {
+			const result = hl('__permissions__ contains all of ["read", "write"]');
+			expect(result).toContain(`<span class="c-function">contains all of</span>`);
+		});
+
+		it("should highlight 'contains any of'", () => {
+			const result = hl('__roles__ contains any of ["admin", "superadmin"]');
+			expect(result).toContain(`<span class="c-function">contains any of</span>`);
+		});
+
+		it("should not match 'contains all of' as plain 'contains'", () => {
+			const result = hl('__permissions__ contains all of ["read", "write"]');
+			expect(result).not.toContain(`<span class="c-function">contains</span> all of`);
+		});
+	});
+
 	describe("quantifier operators", () => {
 		it("should highlight 'any' keyword", () => {
 			const result = hl("any __scores__ of the **student** is greater than 80");
