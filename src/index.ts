@@ -16,6 +16,7 @@ export interface ColorMap {
 }
 
 const LABEL_PREDICATES = [
+	// Positive predicates
 	"clears",
 	"succeeds",
 	"qualifies",
@@ -31,6 +32,23 @@ const LABEL_PREDICATES = [
 	"is permitted",
 	"is legitimate",
 	"is satisfied",
+	// Negated predicates
+	"fails",
+	"does not clear",
+	"does not succeed",
+	"does not qualify",
+	"does not pass",
+	"does not meet requirements",
+	"does not satisfy",
+	"is not valid",
+	"is not approved",
+	"has not passed",
+	"is not authorized",
+	"is not sanctioned",
+	"is not certified",
+	"is not permitted",
+	"is not legitimate",
+	"is not satisfied",
 ];
 
 export const highlightText = (text: string, colors: ColorMap): string => {
@@ -239,6 +257,16 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 		// Prefix functions
 		"length of",
 		"number of",
+		"sum of",
+		"average of",
+		"avg of",
+		"mean of",
+		"min of",
+		"minimum of",
+		"smallest of",
+		"max of",
+		"maximum of",
+		"largest of",
 		// Dynamic key lookup keywords
 		"looked up in",
 		"resolved through",
@@ -266,6 +294,8 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 		"is in",
 		"is not in",
 		"is within",
+		"contains all of",
+		"contains any of",
 		"contains",
 		"starts with",
 		"ends with",
