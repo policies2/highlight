@@ -1,0 +1,19 @@
+{
+	"name": "@policies2/highlight",
+	"version": "0.1.0",
+	"description": "Syntax highlighter for the policy DSL",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": ["dist"],
+	"scripts": {
+		"build": "tsc",
+		"test": "bun test",
+		"prepublishOnly": "tsc"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.3.9",
+		"typescript": "^5.9.3"
+	},
+	"license": "MIT"
+}
