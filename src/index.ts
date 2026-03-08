@@ -66,9 +66,9 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 
 	lines.forEach((line) => {
 		const matchWithLabel = line.match(
-			/^([\w.]+)\.\s+An?\s+\*\*\w+\*\*\s+(.+)$/,
+			/^([\w.]+)\.\s+(?:An?|The)\s+\*\*\w+\*\*\s+(.+)$/,
 		);
-		const matchWithoutLabel = line.match(/^(An?\s+\*\*\w+\*\*\s+)(.+)$/);
+		const matchWithoutLabel = line.match(/^((?:An?|The)\s+\*\*\w+\*\*\s+)(.+)$/);
 
 		if (matchWithLabel?.[1] && matchWithLabel[2] !== undefined) {
 			const label = matchWithLabel[1];
@@ -163,14 +163,14 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 					"\\$&",
 				);
 				const definitionActionPattern = new RegExp(
-					`^(?:[\\w.]+\\.\\s+)?An?\\s+\\*\\*\\w+\\*\\*\\s+(${escapedAction})$`,
+					`^(?:[\\w.]+\\.\\s+)?(?:An?|The)\\s+\\*\\*\\w+\\*\\*\\s+(${escapedAction})$`,
 				);
 
 				lineHtml = lineHtml.replace(
 					definitionActionPattern,
 					(_match, actionPart) => {
 						const prefixMatch = originalLine.match(
-							/^(?:[\w.]+\.\s+)?An?\s+\*\*\w+\*\*(\s+)?/,
+							/^(?:[\w.]+\.\s+)?(?:An?|The)\s+\*\*\w+\*\*(\s+)?/,
 						);
 						const prefix = prefixMatch ? prefixMatch[0] : "";
 						return `${prefix}${createPlaceholder(`<span class="${colors.referenced}">${actionPart}</span>`)}`;
@@ -342,7 +342,7 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 	});
 
 	// Labels at start of line
-	html = html.replace(/^([\w.]+\.)(\s+)(?=An?\s)/gm, (_match, p1, p2) => {
+	html = html.replace(/^([\w.]+\.)(\s+)(?=(?:An?|The)\s)/gm, (_match, p1, p2) => {
 		return `${createPlaceholder(`<span class="${colors.label}">${p1}</span>`)}${p2}`;
 	});
 
