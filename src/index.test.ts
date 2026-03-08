@@ -52,6 +52,24 @@ describe("highlightText", () => {
 		expect(result).toContain(`<span class="c-object">**Person**</span>`);
 	});
 
+	it("should highlight rules starting with The", () => {
+		const result = hl("The **ticket** can still increase priority");
+		expect(result).toContain(`<span class="c-object">**ticket**</span>`);
+	});
+
+	it("should highlight labels before The article", () => {
+		const result = hl("rule1. The **ticket** can increase priority");
+		expect(result).toContain(`<span class="c-label">rule1.</span>`);
+	});
+
+	it("should highlight referenced rules starting with The", () => {
+		const input = `The **ticket** can increase priority
+A **request** is valid if the **request** can increase priority`;
+		const result = hl(input);
+		expect(result).toContain(`<span class="c-referenced">can increase priority</span>`);
+		expect(result).toContain(`<span class="c-reference">can increase priority</span>`);
+	});
+
 	it("should highlight double underscore selectors", () => {
 		const result = hl("The __age__ is equal to 25");
 		expect(result).toContain(`<span class="c-selector">__age__</span>`);
