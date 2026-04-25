@@ -81,6 +81,13 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 			allDefinedRuleActions.add(ruleAction);
 			definitionLineToActionMap.set(line.trim(), ruleAction);
 		}
+
+		// Shorthand labels: `name:` before `if`. Stored with empty value so the
+		// rule-action machinery treats them as label-only (no verbose action).
+		const shorthandLabel = line.match(/^([\w.]+):\s+if\b/);
+		if (shorthandLabel?.[1]) {
+			labeledRules.set(shorthandLabel[1], "");
+		}
 	});
 
 	// Step 2: Determine which defined rules are actually referenced elsewhere
@@ -294,6 +301,9 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 		"is in",
 		"is not in",
 		"is within",
+		"between",
+		"not in",
+		"in",
 		"contains all of",
 		"contains any of",
 		"contains",
@@ -343,6 +353,11 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 
 	// Labels at start of line
 	html = html.replace(/^([\w.]+\.)(\s+)(?=(?:An?|The)\s)/gm, (_match, p1, p2) => {
+		return `${createPlaceholder(`<span class="${colors.label}">${p1}</span>`)}${p2}`;
+	});
+
+	// Shorthand labels at start of line (`name:` before `if`)
+	html = html.replace(/^([\w.]+:)(\s+)(?=if\b)/gm, (_match, p1, p2) => {
 		return `${createPlaceholder(`<span class="${colors.label}">${p1}</span>`)}${p2}`;
 	});
 
@@ -404,6 +419,32 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 	html = html.replace(/^(\s*)(-and|-or)\b/gm, (_match, whitespace, marker) => {
 		return `${whitespace}${createPlaceholder(`<span class="${colors.optional}">${marker}</span>`)}`;
 	});
+
+	// Shorthand symbolic operators (after HTML escaping `<`/`>` are `&lt;`/`&gt;`)
+	html = html.replace(/(-&gt;|&gt;=|&lt;=|==|!=|&gt;|&lt;)/g, (match) => {
+		return createPlaceholder(
+			`<span class="${colors.function}">${match}</span>`,
+		);
+	});
+
+	// Shorthand keywords (if, and, or, not)
+	html = html.replace(/\b(if|and|or|not)\b/g, (match) => {
+		return createPlaceholder(
+			`<span class="${colors.function}">${match}</span>`,
+		);
+	});
+
+	// Dotted property paths (`user.role`, `user.address.country`).
+	// Requires at least one dot between word segments and must start with a
+	// letter or underscore so decimals like `1.5` are skipped.
+	html = html.replace(
+		/\b([a-zA-Z_]\w*(?:\.\w+)+)\b/g,
+		(match) => {
+			return createPlaceholder(
+				`<span class="${colors.selector}">${match}</span>`,
+			);
+		},
+	);
 
 	// Step 6: Replace all placeholders with their actual HTML
 	placeholders.forEach((placeholder, i) => {

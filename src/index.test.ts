@@ -23,9 +23,17 @@ const hl = (text: string) => highlightText(text, colors);
 describe("highlightText", () => {
 	it("should escape HTML special characters", () => {
 		const result = hl("<script>alert('test')</script> & <div>");
-		expect(result).toContain("&lt;script&gt;");
-		expect(result).toContain("&amp;");
+		// Critical: no raw HTML tags reconstructed
 		expect(result).not.toContain("<script>");
+		expect(result).not.toContain("</script>");
+		expect(result).not.toContain("<div>");
+		// `&` is still escaped
+		expect(result).toContain("&amp;");
+		// The escaped `<` / `>` characters are present (possibly wrapped by the
+		// shorthand operator highlighter, which can't distinguish them from
+		// real `<` / `>` operators in the DSL).
+		expect(result).toContain("&lt;");
+		expect(result).toContain("&gt;");
 	});
 
 	it("should highlight numbers", () => {
@@ -262,6 +270,89 @@ A **user** is denied if §check does not pass`;
 			expect(result).toContain(`<span class="c-object">**request**</span>`);
 			expect(result).toContain(`<span class="c-selector">__user__</span>`);
 			expect(result).toContain(`<span class="c-selector">__action__</span>`);
+		});
+	});
+
+	describe("shorthand syntax", () => {
+		it("should highlight the if keyword", () => {
+			const result = hl(`if user.role == "admin" -> access.`);
+			expect(result).toContain(`<span class="c-function">if</span>`);
+		});
+
+		it("should highlight the -> arrow", () => {
+			const result = hl(`if user.role == "admin" -> access.`);
+			expect(result).toContain(`<span class="c-function">-&gt;</span>`);
+		});
+
+		it("should highlight symbolic comparison operators", () => {
+			const result = hl(
+				`if a.x == 1 and a.y != 2 and a.z >= 3 and a.w <= 4 and a.p > 5 and a.q < 6 -> ok.`,
+			);
+			expect(result).toContain(`<span class="c-function">==</span>`);
+			expect(result).toContain(`<span class="c-function">!=</span>`);
+			expect(result).toContain(`<span class="c-function">&gt;=</span>`);
+			expect(result).toContain(`<span class="c-function">&lt;=</span>`);
+			expect(result).toContain(`<span class="c-function">&gt;</span>`);
+			expect(result).toContain(`<span class="c-function">&lt;</span>`);
+		});
+
+		it("should highlight and / or / not", () => {
+			const result = hl(`if user.x > 0 and user.y > 0 or not user.banned -> ok.`);
+			expect(result).toContain(`<span class="c-function">and</span>`);
+			expect(result).toContain(`<span class="c-function">or</span>`);
+			expect(result).toContain(`<span class="c-function">not</span>`);
+		});
+
+		it("should highlight the between keyword in shorthand", () => {
+			const result = hl(`if user.age between 18 and 65 -> eligible.`);
+			expect(result).toContain(`<span class="c-function">between</span>`);
+		});
+
+		it("should highlight in / not in in shorthand", () => {
+			const result1 = hl(`if user.role in ["admin"] -> ok.`);
+			expect(result1).toContain(`<span class="c-function">in</span>`);
+
+			const result2 = hl(`if user.role not in ["banned"] -> ok.`);
+			expect(result2).toContain(`<span class="c-function">not in</span>`);
+		});
+
+		it("should highlight shorthand labels with a colon", () => {
+			const result = hl(`risk_check: if user.x > 0 -> manual_review.`);
+			expect(result).toContain(`<span class="c-label">risk_check:</span>`);
+		});
+
+		it("should highlight dotted shorthand labels", () => {
+			const result = hl(`risk.check: if user.x > 0 -> manual_review.`);
+			expect(result).toContain(`<span class="c-label">risk.check:</span>`);
+		});
+
+		it("should highlight dotted property paths as selectors", () => {
+			const result = hl(`if user.role == "admin" -> ok.`);
+			expect(result).toContain(`<span class="c-selector">user.role</span>`);
+		});
+
+		it("should highlight deeply nested property paths", () => {
+			const result = hl(`if user.address.country == "US" -> domestic.`);
+			expect(result).toContain(
+				`<span class="c-selector">user.address.country</span>`,
+			);
+		});
+
+		it("should highlight $label references to shorthand-defined labels", () => {
+			const input = `risk_check: if user.x > 0 -> manual_review.
+if $risk_check and user.verified == true -> approved.`;
+			const result = hl(input);
+			expect(result).toContain(`<span class="c-label-ref">$risk_check</span>`);
+		});
+
+		it("should not break existing verbose highlighting", () => {
+			const result = hl(
+				`A **applicant** gets approved
+  if the __income__ of the **applicant** is greater than 50000.`,
+			);
+			expect(result).toContain(`<span class="c-object">**applicant**</span>`);
+			expect(result).toContain(`<span class="c-selector">__income__</span>`);
+			expect(result).toContain(`<span class="c-function">is greater than</span>`);
 		});
 	});
 
