@@ -112,6 +112,19 @@ A **request** is valid if the **request** can increase priority`;
 		});
 	});
 
+	describe("placeholder expansion", () => {
+		it("should not leak internal PLACEHOLDER tokens when one wraps another", () => {
+			// `in` is a comparison phrase, so it gets a placeholder before the
+			// surrounding selector does. The selector then wraps that placeholder,
+			// which previously left a `\x00PLACEHOLDER<n>\x00` token in the output
+			// because the final pass replaced placeholders in numerical order.
+			const result = hl("__frequency in seconds__");
+			expect(result).not.toContain("PLACEHOLDER");
+			expect(result).not.toContain("\x00");
+			expect(result).toContain(`<span class="c-selector">`);
+		});
+	});
+
 	describe("rule references", () => {
 		it("should highlight referenced rules", () => {
 			const input = `A **Person** passes the practical driving test

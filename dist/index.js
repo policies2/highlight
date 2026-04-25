@@ -1,4 +1,5 @@
 const LABEL_PREDICATES = [
+    // Positive predicates
     "clears",
     "succeeds",
     "qualifies",
@@ -14,6 +15,23 @@ const LABEL_PREDICATES = [
     "is permitted",
     "is legitimate",
     "is satisfied",
+    // Negated predicates
+    "fails",
+    "does not clear",
+    "does not succeed",
+    "does not qualify",
+    "does not pass",
+    "does not meet requirements",
+    "does not satisfy",
+    "is not valid",
+    "is not approved",
+    "has not passed",
+    "is not authorized",
+    "is not sanctioned",
+    "is not certified",
+    "is not permitted",
+    "is not legitimate",
+    "is not satisfied",
 ];
 export const highlightText = (text, colors) => {
     // Escape &, <, >
@@ -27,8 +45,8 @@ export const highlightText = (text, colors) => {
     const definitionLineToActionMap = new Map();
     const labeledRules = new Map();
     lines.forEach((line) => {
-        const matchWithLabel = line.match(/^([\w.]+)\.\s+An?\s+\*\*\w+\*\*\s+(.+)$/);
-        const matchWithoutLabel = line.match(/^(An?\s+\*\*\w+\*\*\s+)(.+)$/);
+        const matchWithLabel = line.match(/^([\w.]+)\.\s+(?:An?|The)\s+\*\*\w+\*\*\s+(.+)$/);
+        const matchWithoutLabel = line.match(/^((?:An?|The)\s+\*\*\w+\*\*\s+)(.+)$/);
         if (matchWithLabel?.[1] && matchWithLabel[2] !== undefined) {
             const label = matchWithLabel[1];
             const ruleAction = matchWithLabel[2].trim();
@@ -40,6 +58,12 @@ export const highlightText = (text, colors) => {
             const ruleAction = matchWithoutLabel[2].trim();
             allDefinedRuleActions.add(ruleAction);
             definitionLineToActionMap.set(line.trim(), ruleAction);
+        }
+        // Shorthand labels: `name:` before `if`. Stored with empty value so the
+        // rule-action machinery treats them as label-only (no verbose action).
+        const shorthandLabel = line.match(/^([\w.]+):\s+if\b/);
+        if (shorthandLabel?.[1]) {
+            labeledRules.set(shorthandLabel[1], "");
         }
     });
     // Step 2: Determine which defined rules are actually referenced elsewhere
@@ -91,9 +115,9 @@ export const highlightText = (text, colors) => {
         if (isDefinitionLine && actionPartOfThisDefinition) {
             if (rulesWithExternalReferences.has(actionPartOfThisDefinition)) {
                 const escapedAction = actionPartOfThisDefinition.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                const definitionActionPattern = new RegExp(`^(?:[\\w.]+\\.\\s+)?An?\\s+\\*\\*\\w+\\*\\*\\s+(${escapedAction})$`);
+                const definitionActionPattern = new RegExp(`^(?:[\\w.]+\\.\\s+)?(?:An?|The)\\s+\\*\\*\\w+\\*\\*\\s+(${escapedAction})$`);
                 lineHtml = lineHtml.replace(definitionActionPattern, (_match, actionPart) => {
-                    const prefixMatch = originalLine.match(/^(?:[\w.]+\.\s+)?An?\s+\*\*\w+\*\*(\s+)?/);
+                    const prefixMatch = originalLine.match(/^(?:[\w.]+\.\s+)?(?:An?|The)\s+\*\*\w+\*\*(\s+)?/);
                     const prefix = prefixMatch ? prefixMatch[0] : "";
                     return `${prefix}${createPlaceholder(`<span class="${colors.referenced}">${actionPart}</span>`)}`;
                 });
@@ -155,6 +179,16 @@ export const highlightText = (text, colors) => {
         // Prefix functions
         "length of",
         "number of",
+        "sum of",
+        "average of",
+        "avg of",
+        "mean of",
+        "min of",
+        "minimum of",
+        "smallest of",
+        "max of",
+        "maximum of",
+        "largest of",
         // Dynamic key lookup keywords
         "looked up in",
         "resolved through",
@@ -182,6 +216,11 @@ export const highlightText = (text, colors) => {
         "is in",
         "is not in",
         "is within",
+        "between",
+        "not in",
+        "in",
+        "contains all of",
+        "contains any of",
         "contains",
         "starts with",
         "ends with",
@@ -223,7 +262,11 @@ export const highlightText = (text, colors) => {
         return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
     });
     // Labels at start of line
-    html = html.replace(/^([\w.]+\.)(\s+)(?=An?\s)/gm, (_match, p1, p2) => {
+    html = html.replace(/^([\w.]+\.)(\s+)(?=(?:An?|The)\s)/gm, (_match, p1, p2) => {
+        return `${createPlaceholder(`<span class="${colors.label}">${p1}</span>`)}${p2}`;
+    });
+    // Shorthand labels at start of line (`name:` before `if`)
+    html = html.replace(/^([\w.]+:)(\s+)(?=if\b)/gm, (_match, p1, p2) => {
         return `${createPlaceholder(`<span class="${colors.label}">${p1}</span>`)}${p2}`;
     });
     // Double asterisks (objects)
@@ -259,11 +302,37 @@ export const highlightText = (text, colors) => {
     html = html.replace(/^(\s*)(-and|-or)\b/gm, (_match, whitespace, marker) => {
         return `${whitespace}${createPlaceholder(`<span class="${colors.optional}">${marker}</span>`)}`;
     });
-    // Step 6: Replace all placeholders with their actual HTML
-    placeholders.forEach((placeholder, i) => {
-        if (placeholder !== undefined && placeholder !== "") {
-            html = html.replace(`\x00PLACEHOLDER${i}\x00`, placeholder);
-        }
+    // Shorthand symbolic operators (after HTML escaping `<`/`>` are `&lt;`/`&gt;`)
+    html = html.replace(/(-&gt;|&gt;=|&lt;=|==|!=|&gt;|&lt;)/g, (match) => {
+        return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
     });
+    // Shorthand keywords (if, and, or, not)
+    html = html.replace(/\b(if|and|or|not)\b/g, (match) => {
+        return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
+    });
+    // Dotted property paths (`user.role`, `user.address.country`).
+    // Requires at least one dot between word segments and must start with a
+    // letter or underscore so decimals like `1.5` are skipped.
+    html = html.replace(/\b([a-zA-Z_]\w*(?:\.\w+)+)\b/g, (match) => {
+        return createPlaceholder(`<span class="${colors.selector}">${match}</span>`);
+    });
+    // Step 6: Replace all placeholders with their actual HTML.
+    // A placeholder's content can contain earlier-numbered placeholders (e.g.
+    // the selector `__frequency in seconds__` wraps the placeholder created
+    // for the "in" comparison phrase). Replacing in numerical order would
+    // leave the inner placeholder hidden inside the outer's value when its
+    // turn comes, so we iterate until every placeholder has been expanded.
+    const placeholderRegex = /\x00PLACEHOLDER(\d+)\x00/g;
+    let prev;
+    do {
+        prev = html;
+        html = html.replace(placeholderRegex, (match, idxStr) => {
+            const idx = Number.parseInt(idxStr, 10);
+            const replacement = placeholders[idx];
+            return replacement !== undefined && replacement !== ""
+                ? replacement
+                : match;
+        });
+    } while (html !== prev);
     return html;
 };

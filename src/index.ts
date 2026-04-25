@@ -446,12 +446,24 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 		},
 	);
 
-	// Step 6: Replace all placeholders with their actual HTML
-	placeholders.forEach((placeholder, i) => {
-		if (placeholder !== undefined && placeholder !== "") {
-			html = html.replace(`\x00PLACEHOLDER${i}\x00`, placeholder);
-		}
-	});
+	// Step 6: Replace all placeholders with their actual HTML.
+	// A placeholder's content can contain earlier-numbered placeholders (e.g.
+	// the selector `__frequency in seconds__` wraps the placeholder created
+	// for the "in" comparison phrase). Replacing in numerical order would
+	// leave the inner placeholder hidden inside the outer's value when its
+	// turn comes, so we iterate until every placeholder has been expanded.
+	const placeholderRegex = /\x00PLACEHOLDER(\d+)\x00/g;
+	let prev: string;
+	do {
+		prev = html;
+		html = html.replace(placeholderRegex, (match, idxStr) => {
+			const idx = Number.parseInt(idxStr, 10);
+			const replacement = placeholders[idx];
+			return replacement !== undefined && replacement !== ""
+				? replacement
+				: match;
+		});
+	} while (html !== prev);
 
 	return html;
 };
