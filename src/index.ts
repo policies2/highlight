@@ -453,7 +453,7 @@ export const highlightText = (text: string, colors: ColorMap): string => {
 	);
 
 	// Natural round syntax: round X to N places
-	html = html.replace(/\bround\b(?=\s+(?:\*\*|__|@[\w.]|\d|\())/g, (match) => {
+	html = html.replace(/\bround\b(?=\s+(?:\x00PLACEHOLDER\d+\x00|\*\*|__|@[\w.]|\d|\())/g, (match) => {
 		return createPlaceholder(
 			`<span class="${colors.function}">${match}</span>`,
 		);
