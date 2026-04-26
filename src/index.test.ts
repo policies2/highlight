@@ -158,10 +158,22 @@ A **driver** gets a licence if $driver passes`;
 	});
 
 	describe("optional markers", () => {
-		it("should highlight -and and -or", () => {
-			const input = "  -and the __age__ is at least 18";
+		it("should highlight !and and !or", () => {
+			const input = "  !and the __age__ is at least 18";
 			const result = hl(input);
-			expect(result).toContain(`<span class="c-optional">-and</span>`);
+			expect(result).toContain(`<span class="c-optional">!and</span>`);
+		});
+	});
+
+	describe("computed values", () => {
+		it("should highlight := assignments", () => {
+			const result = hl("total := **requestedUnits** plus **reservedUnits**.");
+			expect(result).toContain(`<span class="c-function">:=</span>`);
+		});
+
+		it("should highlight @computed references", () => {
+			const result = hl("A **request** is allowed if @total is less than 100.");
+			expect(result).toContain(`<span class="c-label-ref">@total</span>`);
 		});
 	});
 
@@ -200,6 +212,32 @@ A **user** is denied if §check does not pass`;
 		it("should highlight 'max of'", () => {
 			const result = hl("the max of __temperatures__ of the **Report** is less than 100");
 			expect(result).toContain(`<span class="c-function">max of</span>`);
+		});
+	});
+
+	describe("math expressions", () => {
+		it("should highlight 'power of'", () => {
+			const result = hl("__score__ of **Applicant** power of 2 is greater than 49");
+			expect(result).toContain(`<span class="c-function">power of</span>`);
+		});
+
+		it("should highlight 'to the power of'", () => {
+			const result = hl("__score__ of **Applicant** to the power of 2 is greater than 49");
+			expect(result).toContain(`<span class="c-function">to the power of</span>`);
+		});
+
+		it("should highlight math functions before parentheses", () => {
+			const result = hl("sqrt(81) is equal to max(2, min(9, 4)) and clamp(20, 0, 10) is equal to 10");
+			expect(result).toContain(`<span class="c-function">sqrt</span>`);
+			expect(result).toContain(`<span class="c-function">max</span>`);
+			expect(result).toContain(`<span class="c-function">min</span>`);
+			expect(result).toContain(`<span class="c-function">clamp</span>`);
+		});
+
+		it("should highlight natural round syntax", () => {
+			const result = hl("round **score** to 2 places is equal to 12.35");
+			expect(result).toContain(`<span class="c-function">round</span>`);
+			expect(result).toContain(`<span class="c-number">2</span>`);
 		});
 	});
 

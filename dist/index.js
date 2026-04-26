@@ -161,7 +161,7 @@ export const highlightText = (text, colors) => {
         return createPlaceholder(`<span class="${colors.date}">${match}</span>`);
     });
     // Numbers
-    html = html.replace(/\b(\d+)\b/g, (_match, p1) => {
+    html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, (_match, p1) => {
         return createPlaceholder(`<span class="${colors.number}">${p1}</span>`);
     });
     html = html.replace(/\b((?:year|day|week|month)s?)\b/g, (_match, p1) => {
@@ -189,6 +189,14 @@ export const highlightText = (text, colors) => {
         "max of",
         "maximum of",
         "largest of",
+        "floor of",
+        "ceil of",
+        "ceiling of",
+        "round of",
+        "abs of",
+        "absolute of",
+        "power of",
+        "to the power of",
         // Dynamic key lookup keywords
         "looked up in",
         "resolved through",
@@ -286,6 +294,10 @@ export const highlightText = (text, colors) => {
         }
         return match;
     });
+    // Computed value references (@name)
+    html = html.replace(/@[\w.]+\b/g, (match) => {
+        return createPlaceholder(`<span class="${colors.labelReference}">${match}</span>`);
+    });
     // Quantifier keywords (any, all)
     html = html.replace(/\b(any|all)\b/g, (match) => {
         return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
@@ -298,16 +310,28 @@ export const highlightText = (text, colors) => {
     html = html.replace(/\b(its)\b/g, (match) => {
         return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
     });
-    // Optional rule markers (-and, -or)
-    html = html.replace(/^(\s*)(-and|-or)\b/gm, (_match, whitespace, marker) => {
-        return `${whitespace}${createPlaceholder(`<span class="${colors.optional}">${marker}</span>`)}`;
+    // Optional rule markers (!and, !or)
+    html = html.replace(/(^|\s)(!and|!or)\b/gm, (_match, prefix, marker) => {
+        return `${prefix}${createPlaceholder(`<span class="${colors.optional}">${marker}</span>`)}`;
+    });
+    // Computed value assignment operator
+    html = html.replace(/:=/g, (match) => {
+        return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
+    });
+    // Math function names before parentheses
+    html = html.replace(/\b(sqrt|min|max|clamp|floor|ceil|ceiling|round|absolute|abs)(?=\s*\()/g, (match) => {
+        return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
+    });
+    // Natural round syntax: round X to N places
+    html = html.replace(/\bround\b(?=\s+(?:\*\*|__|@[\w.]|\d|\())/g, (match) => {
+        return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
     });
     // Shorthand symbolic operators (after HTML escaping `<`/`>` are `&lt;`/`&gt;`)
     html = html.replace(/(-&gt;|&gt;=|&lt;=|==|!=|&gt;|&lt;)/g, (match) => {
         return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
     });
     // Shorthand keywords (if, and, or, not)
-    html = html.replace(/\b(if|and|or|not)\b/g, (match) => {
+    html = html.replace(/(?<![!])\b(if|and|or|not)\b/g, (match) => {
         return createPlaceholder(`<span class="${colors.function}">${match}</span>`);
     });
     // Dotted property paths (`user.role`, `user.address.country`).
